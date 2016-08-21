@@ -1,5 +1,6 @@
 from scatter.lib import *
 import socket as socket_lib
+import json
 
 class Agent():
     target = None
@@ -7,6 +8,8 @@ class Agent():
     port = None
     control = True
     job = None
+    connection = None
+    kwargs_dict = None
 
     def __init__(self, target=None, args={}, port=15243):
         self.target = target
@@ -14,39 +17,35 @@ class Agent():
         self.port = port
     
     def start_job(self):
-        pass
+        self.target(**self.kwargs_dict)
 
     def kill_job(self):
         self.control = False # self-control lol
+        self.connection.close()
 
     def status_job(self):
         pass
 
-    def listen(self, verbose=False):
-        socket = socket_lib.socket()
-        socket.bind(("0.0.0.0",self.port))
-        socket.listen(1) # first master to touch it wins
-        
-        d_len = 0
-
-        while self.control:
-            conn, address = socket.accept()
-            if verbose:
-                print("master:{} connected".format(address))
-            d_len = int(conn.recv(8))
-            print(d_len)
-            conn.close()
-            
-            conn, address = socket.accept()
-            control_dict = json_to_dict(conn.recv(d_len))
-            
-            parse_control(control_dict['control'])
-
     def parse_control(self, control):
-        actions = {"start": start_job,
-                   "kill": kill_job,
-                   "status": status_job}
+        actions = {"start": self.start_job,
+                   "kill": self.kill_job,
+                   "status": self.status_job}
 
         actions[control]()
 
-        
+    def listen(self, verbose=False):
+        socket = socket_lib.socket()
+        socket.bind(("0.0.0.0",self.port))
+        socket.listen(1)  # first master to touch it wins
+
+        while self.control:
+            conn, address = socket.accept()
+            self.connection = conn
+            if verbose:
+                print("master:{} connected".format(address))
+
+            control_dict = recv_dict(conn)
+            # print(control_dict)
+
+            self.kwargs_dict = control_dict.get('kwargs',{})
+            self.parse_control(control_dict['control'])
