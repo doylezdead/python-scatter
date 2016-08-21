@@ -12,3 +12,11 @@ def recv_dict(conn):
     d_len = int(conn.recv(8).decode('utf-8'))
     conn.send("1".encode('utf-8'))
     return json.loads(conn.recv(d_len).decode('utf-8'))
+
+
+def send_reply(conn, in_str):
+    conn.send(in_str.encode('utf-8'))
+
+
+def get_reply(conn):
+    return conn.recv(19).decode('utf-8')
