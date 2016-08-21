@@ -23,13 +23,14 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1',
+    version='0.1.0',
 
     description='Implementable distributed computing engine for python',
     long_description=long_description,
 
     # The project's main homepage.
     url='https://github.com/doylezdead/python-scatter',
+    download_url='https://github.com/doylezdead/python-scatter/tarball/0.1.0',
 
     # Author details
     author='Ryan Doyle',
@@ -43,7 +44,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers'
@@ -58,11 +59,11 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='cluster thread',
+    keywords=['cluster', 'thread', 'distributed', 'scatter'],
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=find_packages(),
+    packages=['scatter'],
     include_package_data=True,
     # package_dir={'': 'src'},
 
