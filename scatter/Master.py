@@ -61,6 +61,7 @@ class Master(object):
         print("waiting for returns")
 
         return_socket = socket_lib.socket()
+        return_socket.setsockopt(socket_lib.SOL_SOCKET, socket_lib.SO_REUSEADDR, 1)
         return_socket.bind(("0.0.0.0", self.port+1))
         return_socket.listen(len(self.connections))
 

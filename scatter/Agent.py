@@ -11,7 +11,6 @@ class Agent(object):
     port = None
 
     control = True
-    connection = None
     args_set = None
     kwargs_dict = None
     pool_id = -1
@@ -39,6 +38,8 @@ class Agent(object):
 
     def listen(self, verbose=False):
         socket = socket_lib.socket()
+        socket.setsockopt(socket_lib.SOL_SOCKET, socket_lib.SO_REUSEADDR, 1)
+
         socket.bind(("0.0.0.0", self.port))
         socket.listen(1)  # first master to touch it wins
 
@@ -48,8 +49,6 @@ class Agent(object):
 
             conn, address = socket.accept()
             self.master_hostname = address[0]
-
-            self.connection = conn
 
             if verbose:
                 print("master:{} connected".format(self.master_hostname))
