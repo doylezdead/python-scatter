@@ -14,7 +14,6 @@ class Master(object):
         self.args = args
         self.port = port
 
-        hosts = ['localhost']
         index = 0
         for host in hosts:
             self.connections[host] = index
