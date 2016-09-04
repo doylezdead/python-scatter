@@ -1,9 +1,6 @@
 from scatter.lib import *
 import socket as socket_lib
-from multiprocessing import Process
 import time
-
-a = Process()
 
 
 class Agent(object):
@@ -13,6 +10,8 @@ class Agent(object):
     control = True
     args_set = None
     kwargs_dict = None
+
+    # The agent should be self-aware of it's position in the pool so we can return it to the master with return val
     pool_id = -1
     master_hostname = ""
 
@@ -66,7 +65,6 @@ class Agent(object):
 
             if not self.control:
                 break
-
 
             # now that the return value is ready, send it back
             failcount = 0
