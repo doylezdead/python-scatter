@@ -1,3 +1,4 @@
+raise Exception("Don't import me")
 from scatter.lib import *
 import socket as socket_lib
 import time

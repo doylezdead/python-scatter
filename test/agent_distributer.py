@@ -15,4 +15,7 @@ def print_passed(val=0):
 
 if __name__ == '__main__':
     pool = Pool()
-    pool.listen_loop()
+    pool.add_member(host='rubberduck')
+    for member in pool.members:
+        print(pool.members[member].to_dict())
+    print(pool.local_member.to_dict())
