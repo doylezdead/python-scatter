@@ -1,4 +1,6 @@
-import scatter.lib.hash_crypto as shashlib
+from scatter.lib import hash_crypto as shashlib
+import scatter.lib.networking as snetlib
+
 
 class Member(object):
     id_hash = ""
@@ -25,4 +27,7 @@ class Member(object):
             'active': self.active
         }
 
-import scatter.lib.networking as snetlib
+    def __str__(self):
+        return self.ip_addr
+
+

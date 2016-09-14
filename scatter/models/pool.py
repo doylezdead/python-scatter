@@ -1,5 +1,5 @@
-import scatter.lib.hash_crypto as shashlib
-import scatter.lib.networking as snetlib
+from scatter.lib import hash_crypto as shashlib
+from scatter.lib import networking as snetlib
 from scatter.models.member import Member
 
 

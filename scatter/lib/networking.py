@@ -1,6 +1,5 @@
 import json
 import socket
-from scatter.models.member import Member
 
 
 def host2ip(hostname):
@@ -42,11 +41,7 @@ def listen(new_socket, callback):
 
 
 def send_fn(member, function_name, kwargs, port=51423):
-    hostname = ""
-    if type(member) == Member:
-        member.ip_addr
-    else:
-        hostname = Member
+    hostname = member.__str__()
 
     new_socket = socket.socket()
     new_socket.connect((hostname.ip_addr, port))
