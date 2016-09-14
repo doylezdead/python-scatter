@@ -30,11 +30,10 @@ def _recv_dict(conn):
 
 
 def listen(new_socket, callback):
-    
     new_socket.listen(1)
     conn, invoker = new_socket.accept()  # Note, This is blocking
 
-    control_dict = _recv_dict(new_socket)
+    control_dict = _recv_dict(conn)
     control_dict['invoked_by'] = invoker
 
     retval = callback(control_dict)
