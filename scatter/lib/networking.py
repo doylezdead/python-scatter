@@ -12,12 +12,13 @@ def get_listener_socket(port=51423):
     new_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     new_socket.bind(("0.0.0.0", port))
-    new_socket.listen(1)
+
+    return new_socket
 
 
 def _send_dict(conn, input_dict):
     str_input_dict = json.dumps(input_dict)
-    conn.send(str(len(str_input_dict.encode('utf-8'))).zfill(16).encode('utf-8'))
+    conn.send((str(len(str_input_dict)).zfill(16)).encode('utf-8'))
     conn.recv(1)
     conn.send(str_input_dict.encode('utf-8'))
 
@@ -29,7 +30,8 @@ def _recv_dict(conn):
 
 
 def listen(new_socket, callback):
-
+    
+    new_socket.listen(1)
     conn, invoker = new_socket.accept()  # Note, This is blocking
 
     control_dict = _recv_dict(new_socket)
@@ -44,7 +46,7 @@ def send_fn(member, function_name, kwargs, port=51423):
     hostname = member.__str__()
 
     new_socket = socket.socket()
-    new_socket.connect((hostname.ip_addr, port))
+    new_socket.connect((hostname, port))
     control_dict = {
         'function': function_name,
         'kwargs': kwargs

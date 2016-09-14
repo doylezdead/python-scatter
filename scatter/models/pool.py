@@ -12,7 +12,7 @@ class Pool(object):
     def __init__(self):
         self.add_member()
         self.local_member = Member()
-        self.listen_loop()
+        # self.listen_loop()
 
     def _dummy(self):
         pass
@@ -79,7 +79,7 @@ class Pool(object):
     def add_member(self, host=None, id_hash=None, invoked_by=None):
         if host:
             # local add goes here
-            remote_id = snetlib.send_fn(host, 'add_member', {'id_hash':self.local_member})
+            remote_id = snetlib.send_fn(host, 'add_member', {'id_hash':self.local_member.id_hash})
             self.members[remote_id] = Member(host=host, id_hash=remote_id)
 
         elif id_hash and invoked_by:
