@@ -34,10 +34,10 @@ def listen(new_socket, callback):
     conn, invoker = new_socket.accept()  # Note, This is blocking
 
     control_dict = _recv_dict(conn)
-    control_dict['invoked_by'] = invoker
+    control_dict['kwargs']['invoked_by'] = invoker[0]
 
     retval = callback(control_dict)
-    _send_dict(new_socket, {'return': retval})
+    _send_dict(conn, {'return': retval})
     conn.close()
 
 

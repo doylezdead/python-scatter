@@ -10,7 +10,6 @@ class Pool(object):
     valid_pool = True
 
     def __init__(self):
-        self.add_member()
         self.local_member = Member()
         # self.listen_loop()
 
@@ -32,7 +31,7 @@ class Pool(object):
         )
         if fn_name not in requires_caller:
             del kwargs['invoked_by']
-
+        
         fn_dict = {
             '_update_members': self._update_members,
             '_get_members': self._get_members,
@@ -93,6 +92,7 @@ class Pool(object):
             # local add goes here
             remote_id = snetlib.send_fn(host, 'add_member', {'id_hash':self.local_member.id_hash})
             self.members[remote_id] = Member(host=host, id_hash=remote_id)
+            return remote_id
 
         elif id_hash and invoked_by:
             # remote invoked add goes here
