@@ -33,7 +33,19 @@ class Pool(object):
         if fn_name not in requires_caller:
             del kwargs['invoked_by']
 
-        return self.__dict__[fn_name](**kwargs)
+        fn_dict = {
+            '_update_members': self._update_members,
+            '_get_members': self._get_members,
+            'sync_full': self.sync_full,
+            'sync_quick': self.sync_quick,
+            'add_member': self.add_member,
+            'drop_member': self.drop_member,
+            'announce_active': self.announce_active,
+            'announce_inactive': self.announce_inactive,
+            'dummy': self.announce_active
+        }
+
+        return fn_dict[fn_name](**kwargs)
     
     ### SYNCHRONIZE HOSTS ACROSS ALL MEMBERS' VERSIONS OF THE POOL
     def _update_members(self, full_map={}):
