@@ -6,7 +6,7 @@ def host2ip(hostname):
     return socket.gethostbyname(hostname)
 
 
-def get_listener_socket(port=51423):
+def get_listener_socket(port):
     # socket setup
     new_socket = socket.socket()
     new_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -30,7 +30,7 @@ def _recv_dict(conn):
 
 
 def listen(new_socket, callback):
-    new_socket.listen(1)
+
     conn, invoker = new_socket.accept()  # Note, This is blocking
 
     control_dict = _recv_dict(conn)
@@ -41,8 +41,11 @@ def listen(new_socket, callback):
     conn.close()
 
 
-def send_fn(member, function_name, kwargs, port=51423):
-    hostname = member.__str__()
+def send_fn(member, function_name, kwargs):
+    if type(member) in (tuple, list):
+        hostname, port = member
+    else:
+        hostname, port = str(member).split(":")
 
     new_socket = socket.socket()
     new_socket.connect((hostname, port))

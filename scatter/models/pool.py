@@ -2,6 +2,9 @@ from scatter.lib import hash_crypto as shashlib
 from scatter.lib import networking as snetlib
 from scatter.models.member import Member
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 class Pool(object):
     members = {}
@@ -9,21 +12,22 @@ class Pool(object):
     local_member = None
     valid_pool = True
 
-    def __init__(self):
-        self.local_member = Member()
-        # self.listen_loop()
+    def __init__(self, port=51423):
+        self.local_member = Member(port=port)
+        self.listen_loop(port)
 
-    def _dummy(self):
-        pass
+    # Listener
+    def listen_loop(self, port):
+        socket = snetlib.get_listener_socket(port)
+        socket.listen(100)
 
-    def listen_loop(self):
-        socket = snetlib.get_listener_socket()
         while self.valid_pool:
             snetlib.listen(socket, self.distribute_job)
+
         socket.close()
 
     def distribute_job(self, control_dict):
-        fn_name = control_dict.get('function','dummy')
+        fn_name = control_dict.get('function', '_dummy')
         kwargs = control_dict.get('kwargs', {})
 
         requires_caller = (
@@ -41,17 +45,24 @@ class Pool(object):
             'drop_member': self.drop_member,
             'announce_active': self.announce_active,
             'announce_inactive': self.announce_inactive,
-            'dummy': self.announce_active
+            '_dummy': self._dummy
         }
 
         return fn_dict[fn_name](**kwargs)
-    
-    ### SYNCHRONIZE HOSTS ACROSS ALL MEMBERS' VERSIONS OF THE POOL
-    def _update_members(self, full_map={}):
+
+    @staticmethod
+    def _dummy():
+        return "Failure"
+
+    # SYNCHRONIZE HOSTS ACROSS ALL MEMBERS' VERSIONS OF THE POOL
+    def _update_members(self, full_map=None):
+        if not full_map:
+            return 'Nothing to pass'
         for entry in full_map:
             if (entry in self.members.keys()) or (entry == self.local_member.id_hash):
                 continue
             self.members[entry] = Member(bootstrap=full_map[entry])
+        return 'Success'
     
     def _get_members(self):
         my_map = {}
@@ -64,7 +75,7 @@ class Pool(object):
         full_map = self._get_members()
         
         for id_hash in self.members:
-            full_map.update(snetlib.send_fn(self.members[id_hash],'_get_members',{}))
+            full_map.update(snetlib.send_fn(self.members[id_hash], '_get_members', {}))
 
         self._update_members(full_map)
 
@@ -87,22 +98,23 @@ class Pool(object):
     # If the local member learns of/wishes to add a member, it is their duty
     # to add the host to their pool, add themselves to the host's pool, and full sync
     # to notify the rest of the pool of the new member's existence
-    def add_member(self, host=None, id_hash=None, invoked_by=None):
+    def add_member(self, host=None, port=51423, id_hash=None, invoked_by=None):
         if host:
             # local add goes here
-            remote_id = snetlib.send_fn(host, 'add_member', {'id_hash':self.local_member.id_hash})
-            self.members[remote_id] = Member(host=host, id_hash=remote_id)
+            remote_id = snetlib.send_fn((host, port), 'add_member', {'port': self.local_member.port,
+                                                                     'id_hash': self.local_member.id_hash})
+            self.members[remote_id] = Member(host=host, id_hash=remote_id, port=port)
             return remote_id
 
         elif id_hash and invoked_by:
             # remote invoked add goes here
-            new_member = Member(host=invoked_by, id_hash=id_hash)
+            new_member = Member(port=port, host=invoked_by, id_hash=id_hash)
             self.members[new_member.id_hash] = new_member
             return self.local_member.id_hash
 
         else:
             # (host) || (hash and invoker and !host)
-            return "Failed."
+            return "Failure"
 
     def drop_member(self, id_hash=None):
         return "https://youtu.be/jFi2ZM_7FnM?t=4m14s"
