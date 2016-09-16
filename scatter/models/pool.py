@@ -12,7 +12,7 @@ class Pool(object):
     local_member = None
     valid_pool = True
 
-    def __init__(self, port=51423):
+    def __init__(self, port=15243):
         self.local_member = Member(port=port)
         self.listen_loop(port)
 
@@ -38,7 +38,7 @@ class Pool(object):
         
         fn_dict = {
             '_update_members': self._update_members,
-            '_get_members': self._get_members,
+            'get_members': self.get_members,
             'sync_full': self.sync_full,
             'sync_quick': self.sync_quick,
             'add_member': self.add_member,
@@ -64,7 +64,7 @@ class Pool(object):
             self.members[entry] = Member(bootstrap=full_map[entry])
         return 'Success'
     
-    def _get_members(self):
+    def get_members(self):
         my_map = {}
         for id_hash in self.members:
             my_map[id_hash] = self.members[id_hash].to_dict()
@@ -72,15 +72,15 @@ class Pool(object):
     
     # this is a full sync.  Very expensive as it requires 2+ calls to each member from callee.
     def sync_full(self):
-        full_map = self._get_members()
+        full_map = self.get_members()
         
         for id_hash in self.members:
-            full_map.update(snetlib.send_fn(self.members[id_hash], '_get_members', {}))
+            full_map.update(snetlib.send_fn(self.members[id_hash], 'get_members', {}))
 
         self._update_members(full_map)
 
         for id_hash in self.members:
-            snetlib.send_fn(self.members[id_hash], '_update_members', full_map)
+            snetlib.send_fn(self.members[id_hash], '_update_members', {'full_map': full_map})
     
     # this is a sync with reference to the callee.
     # Less expensive as it only requires 1 call to each member from callee.
@@ -89,16 +89,16 @@ class Pool(object):
     # useful for a system designed around an inactive member acting as a load-balancer.
     # if all members are added/dropped from master, you can just use quick sync
     def sync_quick(self):
-        full_map = self._get_members()
+        full_map = self.get_members()
         
         for id_hash in self.members:
-            snetlib.send_fn(self.members[id_hash], '_update_members', full_map)
+            snetlib.send_fn(self.members[id_hash], '_update_members', {'full_map': full_map})
     
     ### MEMBER CONTROL
     # If the local member learns of/wishes to add a member, it is their duty
     # to add the host to their pool, add themselves to the host's pool, and full sync
     # to notify the rest of the pool of the new member's existence
-    def add_member(self, host=None, port=51423, id_hash=None, invoked_by=None):
+    def add_member(self, host=None, port=15243, id_hash=None, invoked_by=None):
         if host:
             # local add goes here
             remote_id = snetlib.send_fn((host, port), 'add_member', {'port': self.local_member.port,
@@ -119,9 +119,9 @@ class Pool(object):
     def drop_member(self, id_hash=None):
         return "https://youtu.be/jFi2ZM_7FnM?t=4m14s"
     
-    ### SELF-ANNOUNCING FUNCTIONS. NOTIFY SOMETHING TO ENTIRE POOL ABOUT THIS MEMBER
-    ## It will be the member's duty to mark itself offline if it cannot have any external
-    ## function calls invoked on it
+    # SELF-ANNOUNCING FUNCTIONS. NOTIFY SOMETHING TO ENTIRE POOL ABOUT THIS MEMBER
+    # It will be the member's duty to mark itself offline if it cannot have any external
+    # function calls invoked on it
     def announce_inactive(self, id_hash=None):
         if id_hash:
             self.members[id_hash].active = False
@@ -129,7 +129,7 @@ class Pool(object):
         else:
             self.local_member.active = False
             for member in self.members:
-                snetlib.send_fn(member, 'announce_active', {'hash':self.local_member.id_hash})
+                snetlib.send_fn(member, 'announce_active', {'id_hash': self.local_member.id_hash})
             return "good"
     
     def announce_active(self, id_hash=None):
@@ -139,5 +139,5 @@ class Pool(object):
         else:
             self.local_member.active = True
             for member in self.members:
-                snetlib.send_fn(member, 'announce_active', {'hash':self.local_member.id_hash})
+                snetlib.send_fn(member, 'announce_active', {'id_hash':  self.local_member.id_hash})
             return "good"

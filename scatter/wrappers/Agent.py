@@ -1,85 +1,49 @@
-raise Exception("Don't import me")
-from scatter.lib import *
-import socket as socket_lib
-import time
+from scatter.models.pool import Pool as ScatterPool
+from scatter.lib.networking import send_fn
+from multiprocessing import Process
 
 
 class Agent(object):
-    target = None
-    port = None
 
-    control = True
-    args_set = None
-    kwargs_dict = None
+    pool_proc = None
+    local_member = None
 
-    # The agent should be self-aware of it's position in the pool so we can return it to the master with return val
-    pool_id = -1
-    master_hostname = ""
+    def __init__(self, target=None, ,hosts=None, port=15243):
+        self.pool_proc = Process(target=ScatterPool, kwargs={'port':port})
+        self.local_member = ('localhost', port)
+        if type(hosts) in (list, set, tuple):
+            for host in hosts:
+                if type(host) in (list, tuple):
+                    assert len(host) <= 2
+                    assert type(host[0]) == str
+                    if len(host) == 2:
+                        assert type(host[1]) == int
 
-    def __init__(self, target=None, port=15243):
-        self.target = target
-        self.port = port
+                    self.add_member(host=host[0], port=host[1])
 
-    def start_job(self):
-        return self.target(*self.args_set, **self.kwargs_dict)
+                elif type(host) == str:
+                    self.add_member(host=host)
 
-    def stop_agent(self):
-        self.control = False  # self-control lol
+                else:
+                    raise Exception('format')
 
-    def status_job(self):
-        pass
+    def add_member(self, **kwargs):
+        send_fn(self.local_member, 'add_member', kwargs)
 
-    def parse_control(self, control):
-        actions = {"start": self.start_job,
-                   "stop": self.stop_agent,
-                   "status": self.status_job}
+    def drop_member(self, **kwargs):
+        send_fn(self.local_member, 'drop_member', kwargs)
 
-        return actions[control]()
+    def get_members(self, **kwargs):
+        send_fn(self.local_member, 'get_members', kwargs)
 
-    def listen(self, verbose=False):
-        socket = socket_lib.socket()
-        socket.setsockopt(socket_lib.SOL_SOCKET, socket_lib.SO_REUSEADDR, 1)
+    def announce_active(self, **kwargs):
+        send_fn(self.local_member, 'announce_active', kwargs)
 
-        socket.bind(("0.0.0.0", self.port))
-        socket.listen(1)  # first master to touch it wins
+    def announce_inactive(self, **kwargs):
+        send_fn(self.local_member, 'announce_inactive', kwargs)
 
-        while self.control:
-            if verbose:
-                print("Waiting on job from master")
+    def sync_quick(self, **kwargs):
+        send_fn(self.local_member, 'sync_quick', kwargs)
 
-            conn, address = socket.accept()
-            self.master_hostname = address[0]
-
-            if verbose:
-                print("master:{} connected".format(self.master_hostname))
-
-            control_dict = recv_dict(conn)
-
-            self.kwargs_dict = control_dict.get('kwargs', {})
-            self.args_set = set(control_dict.get('args', []))
-
-            self.pool_id = control_dict.get('pool_id',-1)
-            send_reply(conn, "Success from id: {}".format(str(self.pool_id).zfill(2)))
-            conn.close()
-
-            retval = self.parse_control(control_dict['control'])
-
-            if not self.control:
-                break
-
-            # now that the return value is ready, send it back
-            failcount = 0
-            while failcount < 12:
-                try:
-                    return_socket = socket_lib.socket()
-                    return_socket.connect((self.master_hostname, self.port+1))
-
-                    send_dict(return_socket, {"pool_id": self.pool_id, "retval": retval})
-                    return_socket.close()
-                    break
-
-                except ConnectionRefusedError:
-                    failcount += 1
-                    time.sleep(.25)
-
-        socket.close()
+    def sync_full(self, **kwargs):
+        send_fn(self.local_member, 'sync_full', kwargs)
