@@ -8,8 +8,8 @@ class Agent(object):
     pool_proc = None
     local_member = None
 
-    def __init__(self, target=None, ,hosts=None, port=15243):
-        self.pool_proc = Process(target=ScatterPool, kwargs={'port':port})
+    def __init__(self, jobs=None, hosts=None, port=15243):
+        self.pool_instance = ScatterPool(port=port)
         self.local_member = ('localhost', port)
         if type(hosts) in (list, set, tuple):
             for host in hosts:
@@ -26,6 +26,13 @@ class Agent(object):
 
                 else:
                     raise Exception('format')
+
+        if jobs:
+            for target in jobs:
+                self.register_job(target)
+    
+    def start(self):
+        Process(target=self.pool_instance.listen_loop)
 
     def add_member(self, **kwargs):
         send_fn(self.local_member, 'add_member', kwargs)
@@ -47,3 +54,6 @@ class Agent(object):
 
     def sync_full(self, **kwargs):
         send_fn(self.local_member, 'sync_full', kwargs)
+
+    def register_job(self, func):
+        self.pool_instance.register_job(func)

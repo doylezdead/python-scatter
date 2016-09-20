@@ -8,35 +8,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Pool(object):
     members = {}
-    # functions = {}
+    fn_dict = {}
+    job_dict = {}
     local_member = None
     valid_pool = True
 
     def __init__(self, port=15243):
         self.local_member = Member(port=port)
-        self.listen_loop(port)
-
-    # Listener
-    def listen_loop(self, port):
-        socket = snetlib.get_listener_socket(port)
-        socket.listen(100)
-
-        while self.valid_pool:
-            snetlib.listen(socket, self.distribute_job)
-
-        socket.close()
-
-    def distribute_job(self, control_dict):
-        fn_name = control_dict.get('function', '_dummy')
-        kwargs = control_dict.get('kwargs', {})
-
-        requires_caller = (
-            'add_member'
-        )
-        if fn_name not in requires_caller:
-            del kwargs['invoked_by']
-        
-        fn_dict = {
+        self.fn_dict = {
             '_update_members': self._update_members,
             'get_members': self.get_members,
             'sync_full': self.sync_full,
@@ -48,7 +27,27 @@ class Pool(object):
             '_dummy': self._dummy
         }
 
-        return fn_dict[fn_name](**kwargs)
+    # Listener
+    def listen_loop(self):
+        socket = snetlib.get_listener_socket(self.local_member.port)
+        socket.listen(100)
+
+        while self.valid_pool:
+            snetlib.listen(socket, self.distribute_function)
+
+        socket.close()
+
+    def distribute_function(self, control_dict):
+        fn_name = control_dict.get('function', '_dummy')
+        kwargs = control_dict.get('kwargs', {})
+
+        requires_caller = (
+            'add_member'
+        )
+        if fn_name not in requires_caller:
+            del kwargs['invoked_by']
+
+        return self.fn_dict[fn_name](**kwargs)
 
     @staticmethod
     def _dummy():
@@ -141,3 +140,6 @@ class Pool(object):
             for member in self.members:
                 snetlib.send_fn(member, 'announce_active', {'id_hash':  self.local_member.id_hash})
             return "good"
+
+    def register_job(self, target):
+        self.job_dict[target.__name__] = target
