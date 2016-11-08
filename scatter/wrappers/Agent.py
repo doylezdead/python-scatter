@@ -54,6 +54,3 @@ class Agent(object):
 
     def sync_full(self, **kwargs):
         send_fn(self.local_member, 'sync_full', kwargs)
-
-    def register_job(self, func):
-        self.pool_instance.register_job(func)

@@ -28,7 +28,7 @@ class Pool(object):
         }
 
     # Listener
-    def listen_loop(self):
+    def listen(self):
         socket = snetlib.get_listener_socket(self.local_member.port)
         socket.listen(100)
 
@@ -69,7 +69,7 @@ class Pool(object):
             my_map[id_hash] = self.members[id_hash].to_dict()
         return my_map
     
-    # this is a full sync.  Very expensive as it requires 2+ calls to each member from callee.
+    # this is a full sync.  More expensive as it requires 2+ calls to each member from callee.
     def sync_full(self):
         full_map = self.get_members()
         
@@ -123,23 +123,30 @@ class Pool(object):
     # function calls invoked on it
     def announce_inactive(self, id_hash=None):
         if id_hash:
+            # Remote call
             self.members[id_hash].active = False
             return "good"
         else:
+            # Local call
             self.local_member.active = False
             for member in self.members:
-                snetlib.send_fn(member, 'announce_active', {'id_hash': self.local_member.id_hash})
+                snetlib.send_fn(member, 'announce_inactive', {'id_hash': self.local_member.id_hash})
             return "good"
     
     def announce_active(self, id_hash=None):
         if id_hash:
+            # Remote call
             self.members[id_hash].active = True
             return "good"
         else:
+            # Local call announce self active and propogate to other members
             self.local_member.active = True
             for member in self.members:
                 snetlib.send_fn(member, 'announce_active', {'id_hash':  self.local_member.id_hash})
             return "good"
 
-    def register_job(self, target):
+    def job(self, target):
         self.job_dict[target.__name__] = target
+        def reg():
+            pass
+        return reg
