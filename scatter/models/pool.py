@@ -1,20 +1,25 @@
 from scatter.lib import hash_crypto as shashlib
 from scatter.lib import networking as snetlib
 from scatter.models.member import Member
+from multiprocessing import Process
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
 class Pool(object):
+    listen_proc = None
+
     members = {}
     fn_dict = {}
     job_dict = {}
     local_member = None
     valid_pool = True
+    test = 0
 
     def __init__(self, port=15243):
         self.local_member = Member(port=port)
+        self.test = 9
         self.fn_dict = {
             '_update_members': self._update_members,
             'get_members': self.get_members,
@@ -24,11 +29,16 @@ class Pool(object):
             'drop_member': self.drop_member,
             'announce_active': self.announce_active,
             'announce_inactive': self.announce_inactive,
-            '_dummy': self._dummy
+            '_kill': self._kill
         }
+    
+    def listen(self):
+        self.listen_proc = Process(target=self._listen)
+        self.listen_proc.start()
 
     # Listener
-    def listen(self):
+    def _listen(self):
+        self.test+=1
         socket = snetlib.get_listener_socket(self.local_member.port)
         socket.listen(100)
 
@@ -36,6 +46,20 @@ class Pool(object):
             snetlib.listen(socket, self.distribute_function)
 
         socket.close()
+
+    def kill(self):
+        self.announce_inactive()
+
+        # gracefully close the socket.
+        self.valid_pool = False
+        snetlib.send_fn(self.local_member, '_kill', {})
+        
+        # kill the listener
+        print("closed")
+
+    def _kill(self):
+        self.valid_pool = False
+        return "Success"
 
     def distribute_function(self, control_dict):
         fn_name = control_dict.get('function', '_dummy')
@@ -48,10 +72,6 @@ class Pool(object):
             del kwargs['invoked_by']
 
         return self.fn_dict[fn_name](**kwargs)
-
-    @staticmethod
-    def _dummy():
-        return "Failure"
 
     # SYNCHRONIZE HOSTS ACROSS ALL MEMBERS' VERSIONS OF THE POOL
     def _update_members(self, full_map=None):

@@ -45,7 +45,8 @@ def send_fn(member, function_name, kwargs):
     if type(member) in (tuple, list):
         hostname, port = member
     else:
-        hostname, port = str(member).split(":")
+        hostname = str(member).split(":")[0]
+        port = int(str(member).split(":")[1])
 
     new_socket = socket.socket()
     new_socket.connect((hostname, port))
